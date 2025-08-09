@@ -19,6 +19,7 @@ export class Game {
   private cellSize: number = 24;
   private sounds: SoundEffects;
   private animationSpeed: number = 200; // ms for smooth movement
+  private freezeTimeout: NodeJS.Timeout | null = null;
   
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -215,10 +216,18 @@ export class Game {
     if (powerUp.type === 'freeze') {
       // Freeze enemy for duration
       this.state.enemyActive = false;
-      setTimeout(() => {
-        if (!this.state.gameOver) {
+      
+      // Clear any existing freeze timeout
+      if (this.freezeTimeout) {
+        clearTimeout(this.freezeTimeout);
+      }
+      
+      // Set new freeze timeout
+      this.freezeTimeout = setTimeout(() => {
+        if (!this.state.gameOver && !this.state.levelComplete) {
           this.state.enemyActive = true;
         }
+        this.freezeTimeout = null;
       }, powerUp.duration);
     } else {
       this.state.activePowerUps.set(powerUp.type, powerUp.duration);
@@ -417,6 +426,12 @@ export class Game {
     // Clear all active power-ups
     this.state.activePowerUps.clear();
     
+    // Clear freeze timeout to prevent enemy activation after level ends
+    if (this.freezeTimeout) {
+      clearTimeout(this.freezeTimeout);
+      this.freezeTimeout = null;
+    }
+    
     this.state.level++;
     
     setTimeout(() => {
@@ -427,6 +442,13 @@ export class Game {
   private gameOver(): void {
     this.state.gameOver = true;
     this.sounds.playGameOver();
+    
+    // Clear freeze timeout to prevent issues
+    if (this.freezeTimeout) {
+      clearTimeout(this.freezeTimeout);
+      this.freezeTimeout = null;
+    }
+    
     const gameOverDiv = document.getElementById('game-over');
     const finalLevel = document.getElementById('final-level');
     
