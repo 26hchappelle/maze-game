@@ -50,7 +50,7 @@ export class Game {
       enemyPosition: { x: 0, y: 0 },
       enemyVisualPosition: { x: 0, y: 0 },
       enemyActive: false,
-      enemySpeed: 200, // milliseconds between moves - faster!
+      enemySpeed: 400, // milliseconds between moves (starts slower)
       gameOver: false,
       levelComplete: false,
       powerUps: [],
@@ -289,8 +289,11 @@ export class Game {
     // Mark starting area as explored
     this.markCellsAsExplored();
     
-    // Calculate enemy speed (gets much faster each level)
-    this.state.enemySpeed = Math.max(50, 200 - (this.state.level - 1) * 20);
+    // Calculate enemy speed (20% faster each level)
+    // Level 1: 400ms, Level 2: 320ms, Level 3: 256ms, etc.
+    const baseSpeed = 400;
+    const speedMultiplier = Math.pow(0.8, this.state.level - 1); // 0.8 = 20% faster (80% of previous time)
+    this.state.enemySpeed = Math.max(50, Math.round(baseSpeed * speedMultiplier));
     
     // Generate power-ups
     this.generatePowerUps();
