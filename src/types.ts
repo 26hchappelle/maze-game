@@ -25,7 +25,10 @@ export interface PowerUp {
 export interface GameState {
   level: number;
   playerPosition: Position;
+  playerVisualPosition: Position; // For smooth animation
+  playerStartPosition: Position; // Track where player started
   enemyPosition: Position;
+  enemyVisualPosition: Position; // For smooth animation
   enemyActive: boolean;
   enemySpeed: number;
   gameOver: boolean;
@@ -37,4 +40,6 @@ export interface GameState {
   keysPressed: Set<string>;
   playerSpeed: number;
   lastMoveTime: number;
+  isMoving: boolean;
+  moveProgress: number;
 }

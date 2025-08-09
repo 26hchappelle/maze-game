@@ -1,6 +1,7 @@
 import { GameState, Position, PowerUp, Cell } from './types';
 import { MazeGenerator } from './maze';
 import { Renderer } from './renderer';
+import { SoundEffects } from './sounds';
 
 export class Game {
   private canvas: HTMLCanvasElement;
@@ -16,10 +17,13 @@ export class Game {
   private mazeWidth: number;
   private mazeHeight: number;
   private cellSize: number = 24;
+  private sounds: SoundEffects;
+  private animationSpeed: number = 200; // ms for smooth movement
   
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.renderer = new Renderer(canvas, this.cellSize);
+    this.sounds = new SoundEffects();
     
     // Calculate maze dimensions based on level
     this.mazeWidth = 15;
@@ -41,7 +45,10 @@ export class Game {
     return {
       level: 1,
       playerPosition: { x: 0, y: 0 },
+      playerVisualPosition: { x: 0, y: 0 },
+      playerStartPosition: { x: 0, y: 0 },
       enemyPosition: { x: 0, y: 0 },
+      enemyVisualPosition: { x: 0, y: 0 },
       enemyActive: false,
       enemySpeed: 200, // milliseconds between moves - faster!
       gameOver: false,
@@ -52,7 +59,9 @@ export class Game {
       exploredCells: new Set<string>(),
       keysPressed: new Set<string>(),
       playerSpeed: 150, // milliseconds between moves
-      lastMoveTime: 0
+      lastMoveTime: 0,
+      isMoving: false,
+      moveProgress: 0
     };
   }
 
@@ -64,9 +73,27 @@ export class Game {
     if (restartBtn) {
       restartBtn.addEventListener('click', () => this.restart());
     }
+    
+    // Add Enter key support for game over
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && this.state.gameOver) {
+        this.restart();
+      }
+    });
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
+    // Handle sound toggle
+    if (e.key === 'm' || e.key === 'M') {
+      this.sounds.toggle();
+      const soundToggle = document.getElementById('sound-toggle');
+      if (soundToggle) {
+        soundToggle.classList.toggle('muted');
+        soundToggle.textContent = soundToggle.classList.contains('muted') ? '🔇' : '🔊';
+      }
+      return;
+    }
+    
     if (this.state.gameOver || this.state.levelComplete) return;
     
     const validKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'];
@@ -115,6 +142,11 @@ export class Game {
     
     if (this.canMove(this.state.playerPosition, direction)) {
       this.state.playerPosition = { x: newX, y: newY };
+      this.state.isMoving = true;
+      this.state.moveProgress = 0;
+      
+      // Play move sound
+      this.sounds.playMove();
       
       // Mark cells as explored
       this.markCellsAsExplored();
@@ -134,7 +166,7 @@ export class Game {
 
   private markCellsAsExplored(): void {
     const pos = this.state.playerPosition;
-    const radius = 2; // Explore cells within radius
+    const radius = 3; // Increased fog of war radius
     
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
@@ -170,6 +202,7 @@ export class Game {
           powerUp.position.x === this.state.playerPosition.x &&
           powerUp.position.y === this.state.playerPosition.y) {
         powerUp.collected = true;
+        this.sounds.playPowerUp();
         this.activatePowerUp(powerUp);
       }
     }
@@ -190,18 +223,21 @@ export class Game {
   }
 
   private startLevel(): void {
-    // Increase maze size slightly with level
-    const sizeIncrease = Math.floor(this.state.level / 3);
-    this.mazeWidth = Math.min(15 + sizeIncrease, 25);
-    this.mazeHeight = Math.min(15 + sizeIncrease, 25);
+    // Properly scale maze size with level progression
+    const baseSize = 12;
+    const sizeIncrease = Math.floor(this.state.level / 2);
+    this.mazeWidth = Math.min(baseSize + sizeIncrease * 2, 30);
+    this.mazeHeight = Math.min(baseSize + sizeIncrease * 2, 30);
     
+    // Adjust canvas size
     this.canvas.width = this.mazeWidth * this.cellSize;
     this.canvas.height = this.mazeHeight * this.cellSize;
     
+    // Generate maze first, before any positioning
     this.mazeGenerator = new MazeGenerator(this.mazeWidth, this.mazeHeight);
     this.maze = this.mazeGenerator.generate(this.state.level);
     
-    // Randomize start and end positions
+    // Randomize start and end positions AFTER maze is generated
     const corners = [
       { x: 0, y: 0 },
       { x: this.mazeWidth - 1, y: 0 },
@@ -211,16 +247,21 @@ export class Game {
     
     const shuffled = [...corners].sort(() => Math.random() - 0.5);
     this.state.playerPosition = shuffled[0];
+    this.state.playerVisualPosition = { ...shuffled[0] };
+    this.state.playerStartPosition = { ...shuffled[0] };
     this.exitPosition = shuffled[1];
     
-    // Reset state
-    this.state.enemyPosition = { ...this.state.playerPosition };
+    // Enemy ALWAYS spawns at player's start position
+    this.state.enemyPosition = { ...this.state.playerStartPosition };
+    this.state.enemyVisualPosition = { ...this.state.playerStartPosition };
     this.state.enemyActive = false;
     this.state.levelComplete = false;
     this.state.elapsedTime = 0;
     this.state.exploredCells = new Set<string>();
     this.state.keysPressed = new Set<string>();
     this.state.lastMoveTime = 0;
+    this.state.isMoving = false;
+    this.state.moveProgress = 0;
     
     // Mark starting area as explored
     this.markCellsAsExplored();
@@ -235,6 +276,7 @@ export class Game {
     setTimeout(() => {
       if (!this.state.gameOver && !this.state.levelComplete) {
         this.state.enemyActive = true;
+        this.sounds.playEnemySpawn();
         this.calculateEnemyPath();
       }
     }, 5000);
@@ -286,6 +328,14 @@ export class Game {
     
     this.enemyMoveTimer += deltaTime;
     
+    // Update smooth enemy movement
+    const enemyAnimProgress = Math.min(1, this.enemyMoveTimer / this.state.enemySpeed);
+    const prevPos = this.enemyPathIndex > 0 ? this.enemyPath[this.enemyPathIndex - 1] : this.state.enemyPosition;
+    this.state.enemyVisualPosition = {
+      x: prevPos.x + (this.state.enemyPosition.x - prevPos.x) * enemyAnimProgress,
+      y: prevPos.y + (this.state.enemyPosition.y - prevPos.y) * enemyAnimProgress
+    };
+    
     // Enemy is not affected by speed powerup - that's for the player
     const moveSpeed = this.state.enemySpeed;
     
@@ -301,6 +351,13 @@ export class Game {
       if (this.enemyPath.length > 1 && this.enemyPathIndex < this.enemyPath.length - 1) {
         this.enemyPathIndex++;
         this.state.enemyPosition = this.enemyPath[this.enemyPathIndex];
+        
+        // Play sound if enemy is near
+        const distance = Math.abs(this.state.enemyPosition.x - this.state.playerPosition.x) + 
+                        Math.abs(this.state.enemyPosition.y - this.state.playerPosition.y);
+        if (distance <= 3) {
+          this.sounds.playEnemyNear();
+        }
         
         // Check collision
         if (!this.state.activePowerUps.has('invincibility') &&
@@ -329,6 +386,7 @@ export class Game {
 
   private completeLevel(): void {
     this.state.levelComplete = true;
+    this.sounds.playLevelComplete();
     this.state.level++;
     
     setTimeout(() => {
@@ -338,6 +396,7 @@ export class Game {
 
   private gameOver(): void {
     this.state.gameOver = true;
+    this.sounds.playGameOver();
     const gameOverDiv = document.getElementById('game-over');
     const finalLevel = document.getElementById('final-level');
     
@@ -378,12 +437,35 @@ export class Game {
       this.state.elapsedTime += deltaTime;
       this.updateTimer();
       this.processInput(); // Process held keys
+      this.updatePlayerAnimation(deltaTime);
       this.updateEnemy(deltaTime);
       this.updatePowerUps(deltaTime);
     }
     
     this.render();
     requestAnimationFrame((time) => this.update(time));
+  }
+
+  private updatePlayerAnimation(deltaTime: number): void {
+    if (this.state.isMoving) {
+      this.state.moveProgress += deltaTime / this.animationSpeed;
+      if (this.state.moveProgress >= 1) {
+        this.state.moveProgress = 1;
+        this.state.isMoving = false;
+        this.state.playerVisualPosition = { ...this.state.playerPosition };
+      } else {
+        // Smooth interpolation
+        const prevX = this.state.playerVisualPosition.x;
+        const prevY = this.state.playerVisualPosition.y;
+        const targetX = this.state.playerPosition.x;
+        const targetY = this.state.playerPosition.y;
+        
+        this.state.playerVisualPosition = {
+          x: prevX + (targetX - prevX) * this.state.moveProgress,
+          y: prevY + (targetY - prevY) * this.state.moveProgress
+        };
+      }
+    }
   }
 
   private render(): void {
@@ -393,10 +475,10 @@ export class Game {
     this.renderer.renderPowerUps(this.state.powerUps, this.state);
     
     if (this.state.enemyActive) {
-      this.renderer.renderEnemy(this.state.enemyPosition, this.enemyPath.slice(this.enemyPathIndex));
+      this.renderer.renderEnemy(this.state.enemyVisualPosition, this.enemyPath.slice(this.enemyPathIndex));
     }
     
-    this.renderer.renderPlayer(this.state.playerPosition, this.state.activePowerUps.has('invincibility'));
+    this.renderer.renderPlayer(this.state.playerVisualPosition, this.state.activePowerUps.has('invincibility'));
     this.renderer.renderActivePowerUps(this.state.activePowerUps);
   }
 

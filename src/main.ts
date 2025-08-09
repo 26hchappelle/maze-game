@@ -12,7 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
   game.start();
   
   // Display controls
-  console.log('Controls: Arrow keys or WASD to move');
-  console.log('Objective: Reach the golden exit before the red enemy catches you!');
-  console.log('Power-ups: Blue (Speed), Purple (Invincibility), Orange (Reveal), Cyan (Freeze)');
+  console.log('🎮 Controls:');
+  console.log('  • Arrow keys or WASD to move (hold for continuous movement)');
+  console.log('  • M to toggle sound on/off');
+  console.log('  • Enter to restart when game over');
+  console.log('📍 Objective: Reach the golden exit before the red enemy catches you!');
+  console.log('✨ Power-ups: Blue (Speed), Purple (Invincibility), Orange (Reveal), Cyan (Freeze)');
 });

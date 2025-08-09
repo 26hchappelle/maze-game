@@ -102,9 +102,9 @@ export class Renderer {
     }
   }
 
-  renderPlayer(position: Position, hasInvincibility: boolean): void {
-    const x = position.x * this.cellSize + this.cellSize / 2;
-    const y = position.y * this.cellSize + this.cellSize / 2;
+  renderPlayer(visualPosition: Position, hasInvincibility: boolean): void {
+    const x = visualPosition.x * this.cellSize + this.cellSize / 2;
+    const y = visualPosition.y * this.cellSize + this.cellSize / 2;
     const size = this.cellSize * 0.3;
     
     // Draw player as pixelated circle
@@ -123,7 +123,7 @@ export class Renderer {
     }
   }
 
-  renderEnemy(position: Position, path: Position[]): void {
+  renderEnemy(visualPosition: Position, path: Position[]): void {
     // Render trail
     if (path.length > 1) {
       this.ctx.strokeStyle = this.colors.trail;
@@ -143,8 +143,8 @@ export class Renderer {
     }
     
     // Draw enemy
-    const x = position.x * this.cellSize + this.cellSize / 2;
-    const y = position.y * this.cellSize + this.cellSize / 2;
+    const x = visualPosition.x * this.cellSize + this.cellSize / 2;
+    const y = visualPosition.y * this.cellSize + this.cellSize / 2;
     const size = this.cellSize * 0.35;
     
     // Enemy as pixelated square
