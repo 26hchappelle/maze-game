@@ -226,11 +226,28 @@ export class Game {
   }
 
   private startLevel(): void {
-    // Start with larger mazes, gradually increase
-    const baseSize = 20; // Bigger starting size
-    const sizeIncrease = Math.floor((this.state.level - 1) / 3);
-    this.mazeWidth = Math.min(baseSize + sizeIncrease * 2, 35);
-    this.mazeHeight = Math.min(baseSize + sizeIncrease * 2, 35);
+    // Start at 10x10, increase randomly each level
+    const baseSize = 10;
+    
+    // Calculate cumulative increases for current level
+    let widthIncrease = 0;
+    let heightIncrease = 0;
+    
+    // For each level beyond 1, randomly add 2 to one dimension and 3 to the other
+    for (let i = 1; i < this.state.level; i++) {
+      // Use level number as seed for consistent random per level
+      const randomChoice = (i * 7 + 13) % 2; // Simple deterministic "random"
+      if (randomChoice === 0) {
+        widthIncrease += 2;
+        heightIncrease += 3;
+      } else {
+        widthIncrease += 3;
+        heightIncrease += 2;
+      }
+    }
+    
+    this.mazeWidth = Math.min(baseSize + widthIncrease, 40);
+    this.mazeHeight = Math.min(baseSize + heightIncrease, 40);
     
     // Adjust canvas size
     this.canvas.width = this.mazeWidth * this.cellSize;
