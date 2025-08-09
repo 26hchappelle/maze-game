@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maze Escape</title>
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <div id="game-container">
+    <div id="game-header">
+      <div id="level-display">Level: <span id="level-number">1</span></div>
+      <div id="timer-display">Timer: <span id="timer">0</span>s</div>
+    </div>
+    <canvas id="game-canvas"></canvas>
+    <div id="game-over" class="hidden">
+      <h2>Game Over!</h2>
+      <p>You reached level <span id="final-level">1</span></p>
+      <button id="restart-btn">Play Again</button>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
