@@ -1,8 +1,7 @@
-import { GameState, Position, PowerUp, Cell, FreePosition } from './types';
+import { GameState, Position, PowerUp, Cell } from './types';
 import { MazeGenerator } from './maze';
 import { Renderer } from './renderer';
 import { SoundEffects } from './sounds';
-import { Physics } from './physics';
 
 export class Game {
   private canvas: HTMLCanvasElement;
@@ -19,15 +18,12 @@ export class Game {
   private mazeHeight: number;
   private cellSize: number = 24;
   private sounds: SoundEffects;
-  private physics: Physics;
-  private playerPixelPos: { x: number; y: number };
-  private playerSpeed: number = 3; // pixels per frame
+  private animationSpeed: number = 200; // ms for smooth movement
   
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.renderer = new Renderer(canvas, this.cellSize);
     this.sounds = new SoundEffects();
-    this.physics = new Physics(this.cellSize);
     
     // Calculate maze dimensions based on level
     this.mazeWidth = 15;
@@ -38,7 +34,6 @@ export class Game {
     
     this.mazeGenerator = new MazeGenerator(this.mazeWidth, this.mazeHeight);
     this.exitPosition = { x: this.mazeWidth - 1, y: this.mazeHeight - 1 };
-    this.playerPixelPos = { x: 0, y: 0 };
     
     this.state = this.createInitialState();
     
@@ -115,85 +110,82 @@ export class Game {
   private processInput(): void {
     if (this.state.gameOver || this.state.levelComplete) return;
     
-    let dx = 0;
-    let dy = 0;
-    const speed = this.state.activePowerUps.has('speed') ? this.playerSpeed * 1.5 : this.playerSpeed;
+    const currentTime = Date.now();
+    const speed = this.state.activePowerUps.has('speed') ? this.state.playerSpeed / 2 : this.state.playerSpeed;
     
-    // Check all pressed keys for movement
-    if (this.state.keysPressed.has('arrowup') || this.state.keysPressed.has('w')) {
-      dy -= speed;
-    }
-    if (this.state.keysPressed.has('arrowdown') || this.state.keysPressed.has('s')) {
-      dy += speed;
-    }
-    if (this.state.keysPressed.has('arrowleft') || this.state.keysPressed.has('a')) {
-      dx -= speed;
-    }
-    if (this.state.keysPressed.has('arrowright') || this.state.keysPressed.has('d')) {
-      dx += speed;
-    }
+    if (currentTime - this.state.lastMoveTime < speed) return;
     
-    // Normalize diagonal movement
-    if (dx !== 0 && dy !== 0) {
-      const factor = 0.707; // 1/sqrt(2)
-      dx *= factor;
-      dy *= factor;
-    }
+    const moves: { [key: string]: Position } = {
+      'arrowup': { x: 0, y: -1 },
+      'arrowdown': { x: 0, y: 1 },
+      'arrowleft': { x: -1, y: 0 },
+      'arrowright': { x: 1, y: 0 },
+      'w': { x: 0, y: -1 },
+      's': { x: 0, y: 1 },
+      'a': { x: -1, y: 0 },
+      'd': { x: 1, y: 0 }
+    };
     
-    if (dx !== 0 || dy !== 0) {
-      this.movePlayerPixels(dx, dy);
-    }
-  }
-
-  private movePlayerPixels(dx: number, dy: number): void {
-    // Get valid movement considering walls
-    const movement = this.physics.getValidMovement(this.playerPixelPos.x, this.playerPixelPos.y, dx, dy);
-    
-    if (movement.dx !== 0 || movement.dy !== 0) {
-      this.playerPixelPos.x += movement.dx;
-      this.playerPixelPos.y += movement.dy;
-      
-      // Update grid position
-      const gridPos = this.physics.pixelToGrid(this.playerPixelPos.x, this.playerPixelPos.y);
-      this.state.playerPosition = gridPos;
-      
-      // Update visual position for rendering
-      this.state.playerVisualPosition = {
-        x: this.playerPixelPos.x / this.cellSize,
-        y: this.playerPixelPos.y / this.cellSize
-      };
-      
-      // Mark cells as explored
-      this.markCellsAsExplored();
-      
-      // Check for power-ups (with tolerance for pixel-based movement)
-      this.checkPowerUpCollectionPixel();
-      
-      // Check if reached exit (with tolerance)
-      const exitPixel = this.physics.gridToPixel(this.exitPosition.x, this.exitPosition.y);
-      const distance = Math.sqrt(
-        Math.pow(this.playerPixelPos.x - exitPixel.x, 2) +
-        Math.pow(this.playerPixelPos.y - exitPixel.y, 2)
-      );
-      if (distance < this.cellSize / 2) {
-        this.completeLevel();
+    for (const [key, direction] of Object.entries(moves)) {
+      if (this.state.keysPressed.has(key)) {
+        if (this.movePlayer(direction)) {
+          this.state.lastMoveTime = currentTime;
+          break;
+        }
       }
     }
   }
 
-  private checkPowerUpCollectionPixel(): void {
+  private movePlayer(direction: Position): boolean {
+    const newX = this.state.playerPosition.x + direction.x;
+    const newY = this.state.playerPosition.y + direction.y;
+    
+    if (this.canMove(this.state.playerPosition, direction)) {
+      this.state.playerPosition = { x: newX, y: newY };
+      this.state.isMoving = true;
+      this.state.moveProgress = 0;
+      
+      // Play move sound
+      this.sounds.playMove();
+      
+      // Mark cells as explored
+      this.markCellsAsExplored();
+      
+      // Check for power-ups
+      this.checkPowerUpCollection();
+      
+      // Check if reached exit
+      if (newX === this.exitPosition.x && newY === this.exitPosition.y) {
+        this.completeLevel();
+      }
+      
+      return true;
+    }
+    return false;
+  }
+
+  private canMove(from: Position, direction: Position): boolean {
+    const cell = this.maze[from.y][from.x];
+    
+    if (direction.y === -1 && cell.walls.top) return false;
+    if (direction.y === 1 && cell.walls.bottom) return false;
+    if (direction.x === -1 && cell.walls.left) return false;
+    if (direction.x === 1 && cell.walls.right) return false;
+    
+    const newX = from.x + direction.x;
+    const newY = from.y + direction.y;
+    
+    return newX >= 0 && newX < this.mazeWidth && newY >= 0 && newY < this.mazeHeight;
+  }
+
+  private checkPowerUpCollection(): void {
     for (const powerUp of this.state.powerUps) {
-      if (!powerUp.collected) {
-        const powerUpPixel = this.physics.gridToPixel(powerUp.position.x, powerUp.position.y);
-        const distance = Math.sqrt(
-          Math.pow(this.playerPixelPos.x - powerUpPixel.x, 2) +
-          Math.pow(this.playerPixelPos.y - powerUpPixel.y, 2)
-        );
-        if (distance < this.cellSize / 2) {
-          powerUp.collected = true;
-          this.sounds.playPowerUp();
-          this.activatePowerUp(powerUp);
-        }
+      if (!powerUp.collected &&
+          powerUp.position.x === this.state.playerPosition.x &&
+          powerUp.position.y === this.state.playerPosition.y) {
+        powerUp.collected = true;
+        this.sounds.playPowerUp();
+        this.activatePowerUp(powerUp);
       }
     }
   }
@@ -248,9 +240,6 @@ export class Game {
     this.mazeGenerator = new MazeGenerator(this.mazeWidth, this.mazeHeight);
     this.maze = this.mazeGenerator.generate(this.state.level);
     
-    // Update physics with new maze
-    this.physics.setMaze(this.maze, this.mazeWidth, this.mazeHeight);
-    
     // Randomize start and end positions AFTER maze is generated
     const corners = [
       { x: 0, y: 0 },
@@ -261,16 +250,9 @@ export class Game {
     
     const shuffled = [...corners].sort(() => Math.random() - 0.5);
     this.state.playerPosition = shuffled[0];
+    this.state.playerVisualPosition = { ...shuffled[0] };
     this.state.playerStartPosition = { ...shuffled[0] };
     this.exitPosition = shuffled[1];
-    
-    // Set pixel position for free movement
-    const startPixel = this.physics.gridToPixel(shuffled[0].x, shuffled[0].y);
-    this.playerPixelPos = { x: startPixel.x, y: startPixel.y };
-    this.state.playerVisualPosition = {
-      x: this.playerPixelPos.x / this.cellSize,
-      y: this.playerPixelPos.y / this.cellSize
-    };
     
     // Enemy ALWAYS spawns at player's start position
     this.state.enemyPosition = { ...this.state.playerStartPosition };
@@ -383,13 +365,10 @@ export class Game {
           this.sounds.playEnemyNear();
         }
         
-        // Check collision with pixel-based tolerance
-        const enemyPixel = this.physics.gridToPixel(this.state.enemyPosition.x, this.state.enemyPosition.y);
-        const pixelDistance = Math.sqrt(
-          Math.pow(this.playerPixelPos.x - enemyPixel.x, 2) +
-          Math.pow(this.playerPixelPos.y - enemyPixel.y, 2)
-        );
-        if (!this.state.activePowerUps.has('invincibility') && pixelDistance < this.cellSize * 0.6) {
+        // Check collision
+        if (!this.state.activePowerUps.has('invincibility') &&
+            this.state.enemyPosition.x === this.state.playerPosition.x &&
+            this.state.enemyPosition.y === this.state.playerPosition.y) {
           this.gameOver();
         }
       }
@@ -468,6 +447,7 @@ export class Game {
       this.state.elapsedTime += deltaTime;
       this.updateTimer();
       this.processInput(); // Process held keys
+      this.updatePlayerAnimation(deltaTime);
       this.updateEnemy(deltaTime);
       this.updatePowerUps(deltaTime);
     }
@@ -489,6 +469,28 @@ export class Game {
     
     this.renderer.renderPlayer(this.state.playerVisualPosition, this.state.activePowerUps.has('invincibility'));
     this.renderer.renderActivePowerUps(this.state.activePowerUps);
+  }
+
+  private updatePlayerAnimation(deltaTime: number): void {
+    if (this.state.isMoving) {
+      this.state.moveProgress += deltaTime / this.animationSpeed;
+      if (this.state.moveProgress >= 1) {
+        this.state.moveProgress = 1;
+        this.state.isMoving = false;
+        this.state.playerVisualPosition = { ...this.state.playerPosition };
+      } else {
+        // Smooth interpolation
+        const prevX = this.state.playerVisualPosition.x;
+        const prevY = this.state.playerVisualPosition.y;
+        const targetX = this.state.playerPosition.x;
+        const targetY = this.state.playerPosition.y;
+        
+        this.state.playerVisualPosition = {
+          x: prevX + (targetX - prevX) * this.state.moveProgress,
+          y: prevY + (targetY - prevY) * this.state.moveProgress
+        };
+      }
+    }
   }
 
   start(): void {

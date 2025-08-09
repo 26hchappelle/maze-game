@@ -3,13 +3,6 @@ export interface Position {
   y: number;
 }
 
-export interface FreePosition {
-  x: number; // Pixel position
-  y: number; // Pixel position
-  gridX: number; // Current grid cell
-  gridY: number; // Current grid cell
-}
-
 export interface Cell {
   x: number;
   y: number;
