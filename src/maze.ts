@@ -15,9 +15,12 @@ export class MazeGenerator {
     this.initializeCells();
     this.generateMazeRecursive(0, 0);
     
-    // Add complexity based on difficulty
-    if (difficulty > 5) {
-      this.addExtraWalls(Math.min(difficulty * 2, 30));
+    // Add more dead ends and complexity
+    this.addDeadEnds(Math.min(5 + difficulty * 2, 20));
+    
+    // Add extra walls for more complex paths
+    if (difficulty > 3) {
+      this.addExtraWalls(Math.min(difficulty * 3, 40));
     }
     
     return this.cells;
@@ -60,6 +63,35 @@ export class MazeGenerator {
     }
   }
 
+  private addDeadEnds(count: number): void {
+    // Create dead-end branches
+    for (let i = 0; i < count; i++) {
+      const x = Math.floor(Math.random() * this.width);
+      const y = Math.floor(Math.random() * this.height);
+      
+      // Find a cell with only one opening (dead end candidate)
+      const cell = this.cells[y][x];
+      const openings = this.countOpenings(cell);
+      
+      if (openings === 2) {
+        // Create a branch that leads nowhere
+        const directions = this.shuffleArray(['top', 'right', 'bottom', 'left']);
+        for (const dir of directions) {
+          if ((cell.walls as any)[dir]) {
+            const neighbor = this.getNeighborPosition(x, y, dir);
+            if (neighbor && this.canCreateDeadEnd(neighbor.x, neighbor.y)) {
+              // Open the wall to create a dead end
+              (cell.walls as any)[dir] = false;
+              const oppositeDir = this.getOppositeDirection(dir);
+              (this.cells[neighbor.y][neighbor.x].walls as any)[oppositeDir] = false;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
   private addExtraWalls(count: number): void {
     for (let i = 0; i < count; i++) {
       const x = Math.floor(Math.random() * (this.width - 2)) + 1;
@@ -71,6 +103,13 @@ export class MazeGenerator {
       // Only add wall if it doesn't completely block the path
       if (this.hasAlternativePath(x, y, wall)) {
         (this.cells[y][x].walls as any)[wall] = true;
+        
+        // Also close the opposite wall in the neighbor cell
+        const neighbor = this.getNeighborPosition(x, y, wall);
+        if (neighbor) {
+          const oppositeDir = this.getOppositeDirection(wall);
+          (this.cells[neighbor.y][neighbor.x].walls as any)[oppositeDir] = true;
+        }
       }
     }
   }
@@ -146,5 +185,50 @@ export class MazeGenerator {
       return this.cells[y][x];
     }
     return null;
+  }
+
+  private countOpenings(cell: Cell): number {
+    let count = 0;
+    if (!cell.walls.top) count++;
+    if (!cell.walls.right) count++;
+    if (!cell.walls.bottom) count++;
+    if (!cell.walls.left) count++;
+    return count;
+  }
+
+  private getNeighborPosition(x: number, y: number, direction: string): Position | null {
+    switch (direction) {
+      case 'top': return y > 0 ? { x, y: y - 1 } : null;
+      case 'bottom': return y < this.height - 1 ? { x, y: y + 1 } : null;
+      case 'left': return x > 0 ? { x: x - 1, y } : null;
+      case 'right': return x < this.width - 1 ? { x: x + 1, y } : null;
+      default: return null;
+    }
+  }
+
+  private getOppositeDirection(direction: string): string {
+    switch (direction) {
+      case 'top': return 'bottom';
+      case 'bottom': return 'top';
+      case 'left': return 'right';
+      case 'right': return 'left';
+      default: return direction;
+    }
+  }
+
+  private canCreateDeadEnd(x: number, y: number): boolean {
+    const cell = this.cells[y][x];
+    return this.countOpenings(cell) === 1;
+  }
+
+  getRandomPosition(avoid: Position[]): Position {
+    let position: Position;
+    do {
+      position = {
+        x: Math.floor(Math.random() * this.width),
+        y: Math.floor(Math.random() * this.height)
+      };
+    } while (avoid.some(p => p.x === position.x && p.y === position.y));
+    return position;
   }
 }

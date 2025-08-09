@@ -43,17 +43,22 @@ export class Game {
       playerPosition: { x: 0, y: 0 },
       enemyPosition: { x: 0, y: 0 },
       enemyActive: false,
-      enemySpeed: 300, // milliseconds between moves
+      enemySpeed: 200, // milliseconds between moves - faster!
       gameOver: false,
       levelComplete: false,
       powerUps: [],
       activePowerUps: new Map(),
-      elapsedTime: 0
+      elapsedTime: 0,
+      exploredCells: new Set<string>(),
+      keysPressed: new Set<string>(),
+      playerSpeed: 150, // milliseconds between moves
+      lastMoveTime: 0
     };
   }
 
   private setupEventListeners(): void {
-    window.addEventListener('keydown', (e) => this.handleInput(e));
+    window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+    window.addEventListener('keyup', (e) => this.handleKeyUp(e));
     
     const restartBtn = document.getElementById('restart-btn');
     if (restartBtn) {
@@ -61,33 +66,58 @@ export class Game {
     }
   }
 
-  private handleInput(e: KeyboardEvent): void {
+  private handleKeyDown(e: KeyboardEvent): void {
     if (this.state.gameOver || this.state.levelComplete) return;
     
+    const validKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D'];
+    if (validKeys.includes(e.key)) {
+      e.preventDefault();
+      this.state.keysPressed.add(e.key.toLowerCase());
+    }
+  }
+
+  private handleKeyUp(e: KeyboardEvent): void {
+    this.state.keysPressed.delete(e.key.toLowerCase());
+  }
+
+  private processInput(): void {
+    if (this.state.gameOver || this.state.levelComplete) return;
+    
+    const currentTime = Date.now();
+    const speed = this.state.activePowerUps.has('speed') ? this.state.playerSpeed / 2 : this.state.playerSpeed;
+    
+    if (currentTime - this.state.lastMoveTime < speed) return;
+    
     const moves: { [key: string]: Position } = {
-      'ArrowUp': { x: 0, y: -1 },
-      'ArrowDown': { x: 0, y: 1 },
-      'ArrowLeft': { x: -1, y: 0 },
-      'ArrowRight': { x: 1, y: 0 },
+      'arrowup': { x: 0, y: -1 },
+      'arrowdown': { x: 0, y: 1 },
+      'arrowleft': { x: -1, y: 0 },
+      'arrowright': { x: 1, y: 0 },
       'w': { x: 0, y: -1 },
       's': { x: 0, y: 1 },
       'a': { x: -1, y: 0 },
       'd': { x: 1, y: 0 }
     };
     
-    const move = moves[e.key];
-    if (move) {
-      e.preventDefault();
-      this.movePlayer(move);
+    for (const [key, direction] of Object.entries(moves)) {
+      if (this.state.keysPressed.has(key)) {
+        if (this.movePlayer(direction)) {
+          this.state.lastMoveTime = currentTime;
+          break;
+        }
+      }
     }
   }
 
-  private movePlayer(direction: Position): void {
+  private movePlayer(direction: Position): boolean {
     const newX = this.state.playerPosition.x + direction.x;
     const newY = this.state.playerPosition.y + direction.y;
     
     if (this.canMove(this.state.playerPosition, direction)) {
       this.state.playerPosition = { x: newX, y: newY };
+      
+      // Mark cells as explored
+      this.markCellsAsExplored();
       
       // Check for power-ups
       this.checkPowerUpCollection();
@@ -95,6 +125,27 @@ export class Game {
       // Check if reached exit
       if (newX === this.exitPosition.x && newY === this.exitPosition.y) {
         this.completeLevel();
+      }
+      
+      return true;
+    }
+    return false;
+  }
+
+  private markCellsAsExplored(): void {
+    const pos = this.state.playerPosition;
+    const radius = 2; // Explore cells within radius
+    
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const x = pos.x + dx;
+        const y = pos.y + dy;
+        if (x >= 0 && x < this.mazeWidth && y >= 0 && y < this.mazeHeight) {
+          const distance = Math.abs(dx) + Math.abs(dy);
+          if (distance <= radius) {
+            this.state.exploredCells.add(`${x},${y}`);
+          }
+        }
       }
     }
   }
@@ -150,17 +201,32 @@ export class Game {
     this.mazeGenerator = new MazeGenerator(this.mazeWidth, this.mazeHeight);
     this.maze = this.mazeGenerator.generate(this.state.level);
     
-    this.exitPosition = { x: this.mazeWidth - 1, y: this.mazeHeight - 1 };
+    // Randomize start and end positions
+    const corners = [
+      { x: 0, y: 0 },
+      { x: this.mazeWidth - 1, y: 0 },
+      { x: 0, y: this.mazeHeight - 1 },
+      { x: this.mazeWidth - 1, y: this.mazeHeight - 1 }
+    ];
     
-    // Reset positions
-    this.state.playerPosition = { x: 0, y: 0 };
-    this.state.enemyPosition = { x: 0, y: 0 };
+    const shuffled = [...corners].sort(() => Math.random() - 0.5);
+    this.state.playerPosition = shuffled[0];
+    this.exitPosition = shuffled[1];
+    
+    // Reset state
+    this.state.enemyPosition = { ...this.state.playerPosition };
     this.state.enemyActive = false;
     this.state.levelComplete = false;
     this.state.elapsedTime = 0;
+    this.state.exploredCells = new Set<string>();
+    this.state.keysPressed = new Set<string>();
+    this.state.lastMoveTime = 0;
     
-    // Calculate enemy speed (gets faster each level)
-    this.state.enemySpeed = Math.max(100, 300 - (this.state.level - 1) * 15);
+    // Mark starting area as explored
+    this.markCellsAsExplored();
+    
+    // Calculate enemy speed (gets much faster each level)
+    this.state.enemySpeed = Math.max(50, 200 - (this.state.level - 1) * 20);
     
     // Generate power-ups
     this.generatePowerUps();
@@ -190,7 +256,7 @@ export class Game {
           y: Math.floor(Math.random() * this.mazeHeight)
         };
       } while (
-        (position.x === 0 && position.y === 0) ||
+        (position.x === this.state.playerPosition.x && position.y === this.state.playerPosition.y) ||
         (position.x === this.exitPosition.x && position.y === this.exitPosition.y) ||
         this.state.powerUps.some(p => p.position.x === position.x && p.position.y === position.y)
       );
@@ -220,8 +286,8 @@ export class Game {
     
     this.enemyMoveTimer += deltaTime;
     
-    const moveSpeed = this.state.activePowerUps.has('speed') ? 
-      this.state.enemySpeed * 2 : this.state.enemySpeed;
+    // Enemy is not affected by speed powerup - that's for the player
+    const moveSpeed = this.state.enemySpeed;
     
     if (this.enemyMoveTimer >= moveSpeed) {
       this.enemyMoveTimer = 0;
@@ -311,6 +377,7 @@ export class Game {
     if (!this.state.gameOver && !this.state.levelComplete) {
       this.state.elapsedTime += deltaTime;
       this.updateTimer();
+      this.processInput(); // Process held keys
       this.updateEnemy(deltaTime);
       this.updatePowerUps(deltaTime);
     }
@@ -322,8 +389,8 @@ export class Game {
   private render(): void {
     this.renderer.clear();
     this.renderer.renderMaze(this.maze, this.state);
-    this.renderer.renderExit(this.exitPosition);
-    this.renderer.renderPowerUps(this.state.powerUps);
+    this.renderer.renderExit(this.exitPosition, this.state);
+    this.renderer.renderPowerUps(this.state.powerUps, this.state);
     
     if (this.state.enemyActive) {
       this.renderer.renderEnemy(this.state.enemyPosition, this.enemyPath.slice(this.enemyPathIndex));

@@ -33,4 +33,8 @@ export interface GameState {
   powerUps: PowerUp[];
   activePowerUps: Map<string, number>;
   elapsedTime: number;
+  exploredCells: Set<string>;
+  keysPressed: Set<string>;
+  playerSpeed: number;
+  lastMoveTime: number;
 }

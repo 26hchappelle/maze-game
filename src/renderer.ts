@@ -40,14 +40,24 @@ export class Renderer {
     
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[y].length; x++) {
-        this.renderCell(maze[y][x], isRevealed, gameState.playerPosition);
+        this.renderCell(maze[y][x], isRevealed, gameState);
       }
     }
   }
 
-  private renderCell(cell: Cell, isRevealed: boolean, playerPos: Position): void {
+  private renderCell(cell: Cell, isRevealed: boolean, gameState: GameState): void {
     const x = cell.x * this.cellSize;
     const y = cell.y * this.cellSize;
+    const cellKey = `${cell.x},${cell.y}`;
+    const isExplored = gameState.exploredCells.has(cellKey);
+    
+    // Only render if cell has been explored or reveal powerup is active
+    if (!isExplored && !isRevealed) {
+      // Draw complete darkness for unexplored areas
+      this.ctx.fillStyle = '#000000';
+      this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+      return;
+    }
     
     // Draw floor
     this.ctx.fillStyle = this.colors.floor;
@@ -82,11 +92,11 @@ export class Renderer {
       this.ctx.stroke();
     }
     
-    // Apply fog of war if not revealed
-    if (!isRevealed) {
-      const distance = Math.abs(cell.x - playerPos.x) + Math.abs(cell.y - playerPos.y);
-      if (distance > 4) {
-        this.ctx.fillStyle = this.colors.fog;
+    // Apply slight fog for explored but distant areas (only if not revealed)
+    if (!isRevealed && isExplored) {
+      const distance = Math.abs(cell.x - gameState.playerPosition.x) + Math.abs(cell.y - gameState.playerPosition.y);
+      if (distance > 3) {
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
       }
     }
@@ -147,7 +157,13 @@ export class Renderer {
     this.ctx.fillRect(x + size/4, y - size/3, size/3, size/3);
   }
 
-  renderExit(position: Position): void {
+  renderExit(position: Position, gameState: GameState): void {
+    const cellKey = `${position.x},${position.y}`;
+    const isExplored = gameState.exploredCells.has(cellKey);
+    const isRevealed = gameState.activePowerUps.has('reveal');
+    
+    if (!isExplored && !isRevealed) return;
+    
     const x = position.x * this.cellSize + this.cellSize / 2;
     const y = position.y * this.cellSize + this.cellSize / 2;
     const size = this.cellSize * 0.4;
@@ -165,9 +181,16 @@ export class Renderer {
     this.ctx.globalAlpha = 1;
   }
 
-  renderPowerUps(powerUps: PowerUp[]): void {
+  renderPowerUps(powerUps: PowerUp[], gameState: GameState): void {
+    const isRevealed = gameState.activePowerUps.has('reveal');
+    
     for (const powerUp of powerUps) {
       if (!powerUp.collected) {
+        const cellKey = `${powerUp.position.x},${powerUp.position.y}`;
+        const isExplored = gameState.exploredCells.has(cellKey);
+        
+        if (!isExplored && !isRevealed) continue;
+        
         const x = powerUp.position.x * this.cellSize + this.cellSize / 2;
         const y = powerUp.position.y * this.cellSize + this.cellSize / 2;
         const size = this.cellSize * 0.25;
