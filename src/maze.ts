@@ -142,17 +142,6 @@ export class MazeGenerator {
     }
   }
 
-  private hasAlternativePath(x: number, y: number, wallToAdd: string): boolean {
-    const walls = this.cells[y][x].walls;
-    let openWalls = 0;
-    
-    if (!walls.top && wallToAdd !== 'top') openWalls++;
-    if (!walls.right && wallToAdd !== 'right') openWalls++;
-    if (!walls.bottom && wallToAdd !== 'bottom') openWalls++;
-    if (!walls.left && wallToAdd !== 'left') openWalls++;
-    
-    return openWalls >= 1;
-  }
 
   private shuffleArray<T>(array: T[]): T[] {
     const shuffled = [...array];

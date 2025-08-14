@@ -19,7 +19,7 @@ export class Game {
   private cellSize: number = 24;
   private sounds: SoundEffects;
   private animationSpeed: number = 200; // ms for smooth movement
-  private freezeTimeout: NodeJS.Timeout | null = null;
+  private freezeTimeout: ReturnType<typeof setTimeout> | null = null;
   
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
