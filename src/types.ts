@@ -22,6 +22,28 @@ export interface PowerUp {
   collected: boolean;
 }
 
+export interface ColorPalette {
+  name: string;
+  wall: string;
+  floor: string;
+  player: string;
+  enemy: string;
+  exit: string;
+  powerUps: {
+    speed: string;
+    invincibility: string;
+    reveal: string;
+    freeze: string;
+  };
+  fog: string;
+  ui: string;
+  background: string;
+  containerBg: string;
+  headerBg: string;
+  text: string;
+  accent: string;
+}
+
 export interface GameState {
   level: number;
   playerPosition: Position;
@@ -42,4 +64,5 @@ export interface GameState {
   lastMoveTime: number;
   isMoving: boolean;
   moveProgress: number;
+  currentPalette: ColorPalette;
 }

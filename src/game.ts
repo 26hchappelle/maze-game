@@ -1,4 +1,4 @@
-import { GameState, Position, PowerUp, Cell } from './types';
+import { GameState, Position, PowerUp, Cell, ColorPalette } from './types';
 import { MazeGenerator } from './maze';
 import { Renderer } from './renderer';
 import { SoundEffects } from './sounds';
@@ -20,8 +20,10 @@ export class Game {
   private sounds: SoundEffects;
   private animationSpeed: number = 200; // ms for smooth movement
   private freezeTimeout: ReturnType<typeof setTimeout> | null = null;
+  private animationFrameId: number | null = null;
+  private onGameOverCallback?: () => void;
   
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, palette: ColorPalette, onGameOver?: () => void) {
     this.canvas = canvas;
     this.renderer = new Renderer(canvas, this.cellSize);
     this.sounds = new SoundEffects();
@@ -36,13 +38,14 @@ export class Game {
     this.mazeGenerator = new MazeGenerator(this.mazeWidth, this.mazeHeight);
     this.exitPosition = { x: this.mazeWidth - 1, y: this.mazeHeight - 1 };
     
-    this.state = this.createInitialState();
+    this.state = this.createInitialState(palette);
+    this.onGameOverCallback = onGameOver;
     
     this.setupEventListeners();
     this.startLevel();
   }
 
-  private createInitialState(): GameState {
+  private createInitialState(palette: ColorPalette): GameState {
     return {
       level: 1,
       playerPosition: { x: 0, y: 0 },
@@ -62,25 +65,25 @@ export class Game {
       playerSpeed: 150, // milliseconds between moves
       lastMoveTime: 0,
       isMoving: false,
-      moveProgress: 0
+      moveProgress: 0,
+      currentPalette: palette
     };
   }
 
-  private setupEventListeners(): void {
-    window.addEventListener('keydown', (e) => this.handleKeyDown(e));
-    window.addEventListener('keyup', (e) => this.handleKeyUp(e));
-    
-    const restartBtn = document.getElementById('restart-btn');
-    if (restartBtn) {
-      restartBtn.addEventListener('click', () => this.restart());
-    }
-    
-    // Add Enter key support for game over
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && this.state.gameOver) {
-        this.restart();
+  private keyDownHandler = (e: KeyboardEvent) => this.handleKeyDown(e);
+  private keyUpHandler = (e: KeyboardEvent) => this.handleKeyUp(e);
+  private enterKeyHandler = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' && this.state.gameOver) {
+      if (this.onGameOverCallback) {
+        this.onGameOverCallback();
       }
-    });
+    }
+  };
+  
+  private setupEventListeners(): void {
+    window.addEventListener('keydown', this.keyDownHandler);
+    window.addEventListener('keyup', this.keyUpHandler);
+    window.addEventListener('keydown', this.enterKeyHandler);
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
@@ -459,12 +462,34 @@ export class Game {
   }
 
   private restart(): void {
-    this.state = this.createInitialState();
+    this.state = this.createInitialState(this.state.currentPalette);
     const gameOverDiv = document.getElementById('game-over');
     if (gameOverDiv) {
       gameOverDiv.classList.add('hidden');
     }
     this.startLevel();
+  }
+  
+  stop(): void {
+    // Cancel animation frame
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    
+    // Clear timeouts
+    if (this.freezeTimeout) {
+      clearTimeout(this.freezeTimeout);
+      this.freezeTimeout = null;
+    }
+    
+    // Remove event listeners
+    window.removeEventListener('keydown', this.keyDownHandler);
+    window.removeEventListener('keyup', this.keyUpHandler);
+    window.removeEventListener('keydown', this.enterKeyHandler);
+    
+    // Clear key states
+    this.state.keysPressed.clear();
   }
 
   private updateLevelDisplay(): void {
@@ -495,22 +520,22 @@ export class Game {
     }
     
     this.render();
-    requestAnimationFrame((time) => this.update(time));
+    this.animationFrameId = requestAnimationFrame((time) => this.update(time));
   }
 
 
   private render(): void {
-    this.renderer.clear();
+    this.renderer.clear(this.state.currentPalette);
     this.renderer.renderMaze(this.maze, this.state);
     this.renderer.renderExit(this.exitPosition, this.state);
     this.renderer.renderPowerUps(this.state.powerUps, this.state);
     
     if (this.state.enemyActive) {
-      this.renderer.renderEnemy(this.state.enemyVisualPosition, this.enemyPath.slice(this.enemyPathIndex));
+      this.renderer.renderEnemy(this.state.enemyVisualPosition, this.enemyPath.slice(this.enemyPathIndex), this.state);
     }
     
-    this.renderer.renderPlayer(this.state.playerVisualPosition, this.state.activePowerUps.has('invincibility'));
-    this.renderer.renderActivePowerUps(this.state.activePowerUps);
+    this.renderer.renderPlayer(this.state.playerVisualPosition, this.state.activePowerUps.has('invincibility'), this.state);
+    this.renderer.renderActivePowerUps(this.state.activePowerUps, this.state.currentPalette);
   }
 
   private updatePlayerAnimation(deltaTime: number): void {
@@ -536,6 +561,6 @@ export class Game {
   }
 
   start(): void {
-    requestAnimationFrame((time) => this.update(time));
+    this.animationFrameId = requestAnimationFrame((time) => this.update(time));
   }
 }
