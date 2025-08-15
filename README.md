@@ -10,6 +10,7 @@ A browser-based maze escape game built with TypeScript and HTML5 Canvas. Players
 - [Technical Implementation](#technical-implementation)
 - [Development Setup](#development-setup)
 - [Deployment](#deployment)
+- [Mobile Support](#mobile-support)
 
 ## Architecture Overview
 
@@ -37,6 +38,7 @@ A browser-based maze escape game built with TypeScript and HTML5 Canvas. Players
 │   ├── renderer.ts     # Canvas rendering system
 │   ├── sounds.ts       # Web Audio API sound effects
 │   ├── types.ts        # TypeScript interfaces and types
+│   ├── palettes.ts     # Color palette definitions
 │   ├── main.ts         # Entry point and initialization
 │   └── styles.css      # Game styling and UI
 ├── index.html          # HTML container and UI elements
@@ -85,6 +87,10 @@ interface GameState {
   activePowerUps: Map<string, number>    // Currently active power-up effects
   exploredCells: Set<string>             // Cells revealed by player
   keysPressed: Set<string>               // Currently pressed keys
+  victory: boolean                       // Victory state after level 6
+  totalTime: number                      // Total accumulated time
+  currentPalette: ColorPalette           // Selected color theme
+  cheatMode: boolean                     // Cheat mode activated state
 }
 ```
 
@@ -140,23 +146,43 @@ Canvas-based rendering with pixelated retro aesthetic.
 **Visual Features:**
 - **Fog of War**: Only explored cells within radius 3 are visible
 - **Smooth Animation**: Interpolation between grid positions
-- **Pixelated Style**: GBA-inspired color palette and rendering
+- **Pixelated Style**: Multiple themed color palettes
 - **Visual Effects**: Pulsing exit, rotating power-ups, enemy trail
+- **Dynamic Theming**: All UI elements adapt to selected palette
+- **Thicker Borders**: Outer maze walls are 4px (vs 2px inner walls)
 
-**Color Palette:**
-```javascript
-colors = {
-  wall: '#4a3c7a',       // Purple walls
-  floor: '#0f0720',      // Dark blue floor
-  player: '#4ade80',     // Green player
-  enemy: '#ff6b6b',      // Red enemy
-  exit: '#fbbf24',       // Golden exit
-  powerUp: {
-    speed: '#3b82f6',    // Blue
-    invincibility: '#a855f7',  // Purple
-    reveal: '#f59e0b',   // Orange
-    freeze: '#06b6d4'    // Cyan
+### 5. Color Palette System (`palettes.ts`)
+
+**Available Themes:**
+- **Retro Purple**: Classic purple and blue theme
+- **Ocean Depths**: Teal and deep blue aquatic theme
+- **Forest Night**: Green and earth tones
+- **Desert Sands**: Warm oranges and browns
+- **Volcanic**: Red and dark volcanic theme
+- **Monochrome**: Clean black and white theme
+
+**Palette Structure:**
+```typescript
+interface ColorPalette {
+  name: string           // Display name
+  wall: string          // Maze wall color
+  floor: string         // Maze floor color
+  player: string        // Player color
+  enemy: string         // Enemy color
+  exit: string          // Exit color
+  powerUps: {           // Power-up colors
+    speed: string
+    invincibility: string
+    reveal: string
+    freeze: string
   }
+  fog: string           // Fog of war overlay
+  ui: string            // UI text color
+  background: string    // Page background
+  containerBg: string   // Game container background
+  headerBg: string      // Header background
+  text: string          // Text color
+  accent: string        // Accent color for highlights
 }
 ```
 
@@ -186,6 +212,18 @@ class SoundEffects {
 ```
 
 ## Game Features
+
+### Color Palette Selection
+- **Pre-game Selection**: Choose from 6 themed color palettes
+- **Live Preview**: Palette colors apply to selection screen
+- **Complete Theming**: All UI elements adapt to selected colors
+- **Persistent Through Session**: Palette stays until changed
+
+### Victory System
+- **6 Levels Total**: Game has definitive ending
+- **Victory Screen**: Special celebration screen after level 6
+- **Time Tracking**: Shows total time across all 6 levels
+- **Play Again**: Returns to palette selection
 
 ### Player Movement
 - **Grid-based**: Player moves cell by cell on the grid
@@ -223,6 +261,7 @@ Four types with 5-second duration:
 **Maze Sizing:**
 - Level 1: 10×10 grid
 - Each level: One dimension +2, other +3 (randomly chosen)
+- Level 6: Final level with victory condition
 - Maximum: 40×40 grid
 
 **Example Progression:**
@@ -231,6 +270,8 @@ Level 1: 10×10
 Level 2: 12×13 or 13×12
 Level 3: 14×16 or 15×15
 Level 4: 16×19 or 18×17
+Level 5: 18×22 or 21×19
+Level 6: 20×25 or 23×22 (Final Level)
 ```
 
 **Difficulty Scaling:**
@@ -348,7 +389,8 @@ The game auto-deploys to Vercel on push to main branch.
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "framework": null
 }
 ```
 
@@ -366,17 +408,31 @@ The game auto-deploys to Vercel on push to main branch.
 
 ## Controls
 
+### Desktop
 - **Arrow Keys / WASD**: Move player
 - **M**: Toggle sound on/off
-- **Enter**: Restart when game over
+- **Enter**: Return to palette selection when game over
+- **9**: Activate cheat mode (secret)
+
+### Mobile
+- **D-Pad Controls**: Classic diamond layout
+- **Touch Buttons**: Arrow buttons for movement
+- **Responsive Sizing**: Adapts to screen size
 
 ## Game Rules
 
-1. **Objective**: Reach the golden exit before the red enemy catches you
+1. **Objective**: Reach the golden exit in all 6 levels
 2. **Enemy**: Starts chasing after 5 seconds
 3. **Power-ups**: Collect for temporary advantages
 4. **Progression**: Each level increases difficulty
-5. **Game Over**: Enemy collision sends back to level 1
+5. **Game Over**: Enemy collision returns to palette selection
+6. **Victory**: Complete level 6 to win the game
+
+### Cheat Mode (Secret)
+Press '9' to activate:
+- **Permanent Invincibility**: Immune to enemy
+- **Full Map Reveal**: See entire maze instantly
+- **Hidden Feature**: Not shown in UI
 
 ## Performance Considerations
 
@@ -386,6 +442,34 @@ The game auto-deploys to Vercel on push to main branch.
 - **Memory**: Minimal - only current level data in memory
 - **Bundle Size**: ~15KB gzipped total
 
+## Mobile Support
+
+### Responsive Design
+- **Viewport Optimization**: Prevents scrolling and bounce
+- **Dynamic Sizing**: Canvas adapts to screen dimensions
+- **Cell Size Calculation**: Adjusts based on maze and screen size
+- **Touch Controls**: D-pad interface for mobile play
+
+### D-Pad Controls
+- **Diamond Layout**: Classic game controller arrangement
+- **Large Touch Targets**: 72px buttons (60px on small screens)
+- **Visual Feedback**: Press animation and color changes
+- **Position**: Fixed at bottom of screen
+- **No Swipe Required**: Direct button input
+
+### Mobile-Specific CSS
+```css
+@media (max-width: 768px) {
+  /* Adaptive canvas sizing */
+  #game-canvas {
+    max-width: calc(100vw - 40px);
+    max-height: calc(100vh - 200px);
+  }
+  /* D-pad visible only on mobile */
+  .mobile-only { display: block; }
+}
+```
+
 ## Future Enhancements
 
 Potential improvements for consideration:
@@ -393,10 +477,11 @@ Potential improvements for consideration:
 - Persistent high scores with local storage
 - Additional power-up types
 - Mini-map display
-- Mobile touch controls
+- More color palettes
 - Multiplayer support
 - Level editor
 - Achievement system
+- Sound effect variations per palette
 
 ## License
 
