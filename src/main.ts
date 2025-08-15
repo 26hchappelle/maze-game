@@ -114,6 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.palette-name').forEach((nameEl) => {
       (nameEl as HTMLElement).style.color = palette.text;
     });
+    
+    // Update mobile hint
+    const mobileHint = document.getElementById('mobile-hint');
+    if (mobileHint) {
+      mobileHint.style.color = palette.text;
+    }
   };
   
   // Function to start game with selected palette
