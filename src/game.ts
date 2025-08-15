@@ -22,10 +22,6 @@ export class Game {
   private freezeTimeout: ReturnType<typeof setTimeout> | null = null;
   private animationFrameId: number | null = null;
   private onGameOverCallback?: () => void;
-  private touchStartX: number = 0;
-  private touchStartY: number = 0;
-  private touchStartTime: number = 0;
-  private minSwipeDistance: number = 30;
   
   constructor(canvas: HTMLCanvasElement, palette: ColorPalette, onGameOver?: () => void) {
     this.canvas = canvas;
@@ -57,7 +53,7 @@ export class Game {
     if (isMobile) {
       // Calculate based on viewport size to fit screen
       const maxWidth = window.innerWidth - 40;  // Account for padding
-      const maxHeight = window.innerHeight - 120;  // Account for header and padding
+      const maxHeight = window.innerHeight - 200;  // Account for header and arrow controls
       
       // Start with a base of 15x15 maze
       const cellSizeByWidth = Math.floor(maxWidth / 15);
@@ -106,18 +102,49 @@ export class Game {
       }
     }
   };
-  private touchStartHandler = (e: TouchEvent) => this.handleTouchStart(e);
-  private touchEndHandler = (e: TouchEvent) => this.handleTouchEnd(e);
   
   private setupEventListeners(): void {
     window.addEventListener('keydown', this.keyDownHandler);
     window.addEventListener('keyup', this.keyUpHandler);
     window.addEventListener('keydown', this.enterKeyHandler);
     
-    // Add touch event listeners for mobile
-    this.canvas.addEventListener('touchstart', this.touchStartHandler, { passive: false });
-    this.canvas.addEventListener('touchend', this.touchEndHandler, { passive: false });
-    this.canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    // Setup mobile arrow controls
+    this.setupMobileControls();
+  }
+  
+  private setupMobileControls(): void {
+    const upBtn = document.getElementById('arrow-up');
+    const downBtn = document.getElementById('arrow-down');
+    const leftBtn = document.getElementById('arrow-left');
+    const rightBtn = document.getElementById('arrow-right');
+    
+    if (upBtn) {
+      upBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.movePlayer({ x: 0, y: -1 });
+      });
+    }
+    
+    if (downBtn) {
+      downBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.movePlayer({ x: 0, y: 1 });
+      });
+    }
+    
+    if (leftBtn) {
+      leftBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.movePlayer({ x: -1, y: 0 });
+      });
+    }
+    
+    if (rightBtn) {
+      rightBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        this.movePlayer({ x: 1, y: 0 });
+      });
+    }
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
@@ -156,54 +183,6 @@ export class Game {
 
   private handleKeyUp(e: KeyboardEvent): void {
     this.state.keysPressed.delete(e.key.toLowerCase());
-  }
-  
-  private handleTouchStart(e: TouchEvent): void {
-    e.preventDefault();
-    if (this.state.gameOver || this.state.levelComplete || this.state.victory) return;
-    
-    const touch = e.touches[0];
-    this.touchStartX = touch.clientX;
-    this.touchStartY = touch.clientY;
-    this.touchStartTime = Date.now();
-  }
-  
-  private handleTouchEnd(e: TouchEvent): void {
-    e.preventDefault();
-    if (this.state.gameOver || this.state.levelComplete || this.state.victory) return;
-    
-    const touch = e.changedTouches[0];
-    const deltaX = touch.clientX - this.touchStartX;
-    const deltaY = touch.clientY - this.touchStartY;
-    const deltaTime = Date.now() - this.touchStartTime;
-    
-    // Only process if it was a quick swipe (less than 500ms)
-    if (deltaTime > 500) return;
-    
-    // Calculate swipe distance
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    // Only process if swipe was long enough
-    if (distance < this.minSwipeDistance) return;
-    
-    // Determine swipe direction
-    const absX = Math.abs(deltaX);
-    const absY = Math.abs(deltaY);
-    
-    let direction: Position | null = null;
-    
-    if (absX > absY) {
-      // Horizontal swipe
-      direction = deltaX > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
-    } else {
-      // Vertical swipe
-      direction = deltaY > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
-    }
-    
-    // Move player in the swipe direction
-    if (direction) {
-      this.movePlayer(direction);
-    }
   }
 
   private processInput(): void {
@@ -360,7 +339,7 @@ export class Game {
     const isMobile = window.innerWidth <= 768;
     if (isMobile) {
       const maxWidth = window.innerWidth - 40;
-      const maxHeight = window.innerHeight - 120;
+      const maxHeight = window.innerHeight - 200;  // Account for arrow controls
       const cellSizeByWidth = Math.floor(maxWidth / this.mazeWidth);
       const cellSizeByHeight = Math.floor(maxHeight / this.mazeHeight);
       this.cellSize = Math.min(cellSizeByWidth, cellSizeByHeight, 24);
@@ -636,8 +615,6 @@ export class Game {
     window.removeEventListener('keydown', this.keyDownHandler);
     window.removeEventListener('keyup', this.keyUpHandler);
     window.removeEventListener('keydown', this.enterKeyHandler);
-    this.canvas.removeEventListener('touchstart', this.touchStartHandler);
-    this.canvas.removeEventListener('touchend', this.touchEndHandler);
     
     // Clear key states
     this.state.keysPressed.clear();

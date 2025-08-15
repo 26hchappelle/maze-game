@@ -22,7 +22,18 @@
       <div id="sound-toggle" title="Press M to toggle sound">🔊</div>
     </div>
     <canvas id="game-canvas"></canvas>
-    <div id="mobile-hint" class="mobile-only">Swipe to move!</div>
+    <div id="mobile-controls" class="mobile-only">
+      <div class="arrow-controls">
+        <div class="arrow-row">
+          <button id="arrow-up" class="arrow-btn">▲</button>
+        </div>
+        <div class="arrow-row">
+          <button id="arrow-left" class="arrow-btn">◄</button>
+          <button id="arrow-down" class="arrow-btn">▼</button>
+          <button id="arrow-right" class="arrow-btn">►</button>
+        </div>
+      </div>
+    </div>
     <div id="game-over" class="hidden">
       <h2>Game Over!</h2>
       <p>You reached level <span id="final-level">1</span></p>

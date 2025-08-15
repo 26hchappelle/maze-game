@@ -273,7 +273,7 @@ body {
   
   #game-canvas {
     max-width: calc(100vw - 40px);
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 200px); /* Account for header and arrow controls */
     width: auto !important;
     height: auto !important;
   }
@@ -362,7 +362,7 @@ body {
   }
 }
 
-/* Mobile hint */
+/* Mobile controls */
 .mobile-only {
   display: none;
 }
@@ -370,24 +370,61 @@ body {
 @media (max-width: 768px) {
   .mobile-only {
     display: block;
-    text-align: center;
-    padding: 10px;
-    font-size: 14px;
-    opacity: 0.8;
-    animation: fadeIn 1s ease-in;
-  }
-  
-  #mobile-hint {
-    margin-top: 10px;
-    font-style: italic;
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+#mobile-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+
+.arrow-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.arrow-row {
+  display: flex;
+  gap: 5px;
+}
+
+.arrow-btn {
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  border: 2px solid;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: all 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arrow-btn:active {
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+@media (max-width: 480px) {
+  .arrow-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
   }
-  to {
-    opacity: 0.8;
+  
+  #mobile-controls {
+    bottom: 10px;
   }
 }
