@@ -57,16 +57,19 @@ export class Game {
       enemySpeed: 400, // milliseconds between moves (starts slower)
       gameOver: false,
       levelComplete: false,
+      victory: false,
       powerUps: [],
       activePowerUps: new Map(),
       elapsedTime: 0,
+      totalTime: 0,
       exploredCells: new Set<string>(),
       keysPressed: new Set<string>(),
       playerSpeed: 150, // milliseconds between moves
       lastMoveTime: 0,
       isMoving: false,
       moveProgress: 0,
-      currentPalette: palette
+      currentPalette: palette,
+      cheatMode: false
     };
   }
 
@@ -94,6 +97,19 @@ export class Game {
       if (soundToggle) {
         soundToggle.classList.toggle('muted');
         soundToggle.textContent = soundToggle.classList.contains('muted') ? '🔇' : '🔊';
+      }
+      return;
+    }
+    
+    // Handle cheat code activation
+    if (e.key === '9' && !this.state.cheatMode) {
+      this.state.cheatMode = true;
+      console.log('🎮 Cheat mode activated! Invincibility and full map reveal enabled.');
+      // Reveal entire map immediately
+      for (let y = 0; y < this.mazeHeight; y++) {
+        for (let x = 0; x < this.mazeWidth; x++) {
+          this.state.exploredCells.add(`${x},${y}`);
+        }
       }
       return;
     }
@@ -291,6 +307,15 @@ export class Game {
     this.state.elapsedTime = 0;
     this.state.exploredCells = new Set<string>();
     this.state.keysPressed = new Set<string>();
+    
+    // If cheat mode is active, reveal entire new maze
+    if (this.state.cheatMode) {
+      for (let y = 0; y < this.mazeHeight; y++) {
+        for (let x = 0; x < this.mazeWidth; x++) {
+          this.state.exploredCells.add(`${x},${y}`);
+        }
+      }
+    }
     this.state.lastMoveTime = 0;
     this.state.isMoving = false;
     this.state.moveProgress = 0;
@@ -397,8 +422,8 @@ export class Game {
           this.sounds.playEnemyNear();
         }
         
-        // Check collision
-        if (!this.state.activePowerUps.has('invincibility') &&
+        // Check collision (cheat mode provides permanent invincibility)
+        if (!this.state.cheatMode && !this.state.activePowerUps.has('invincibility') &&
             this.state.enemyPosition.x === this.state.playerPosition.x &&
             this.state.enemyPosition.y === this.state.playerPosition.y) {
           this.gameOver();
@@ -426,6 +451,9 @@ export class Game {
     this.state.levelComplete = true;
     this.sounds.playLevelComplete();
     
+    // Add current level time to total time
+    this.state.totalTime += this.state.elapsedTime;
+    
     // Clear all active power-ups
     this.state.activePowerUps.clear();
     
@@ -435,11 +463,51 @@ export class Game {
       this.freezeTimeout = null;
     }
     
+    // Check for victory (completed level 6)
+    if (this.state.level === 6) {
+      this.victory();
+      return;
+    }
+    
     this.state.level++;
     
     setTimeout(() => {
       this.startLevel();
     }, 1000);
+  }
+  
+  private victory(): void {
+    this.state.victory = true;
+    this.sounds.playLevelComplete();
+    
+    // Clear cheat mode after victory
+    this.state.cheatMode = false;
+    
+    // Clear any timeouts
+    if (this.freezeTimeout) {
+      clearTimeout(this.freezeTimeout);
+      this.freezeTimeout = null;
+    }
+    
+    // Show victory screen
+    const victoryScreen = document.getElementById('victory-screen');
+    const totalTimeElement = document.getElementById('total-time');
+    
+    if (victoryScreen && totalTimeElement) {
+      totalTimeElement.textContent = Math.floor(this.state.totalTime / 1000).toString();
+      victoryScreen.classList.remove('hidden');
+    }
+    
+    // Handle victory callback (return to palette selection)
+    if (this.onGameOverCallback) {
+      const victoryBtn = document.getElementById('victory-play-again');
+      if (victoryBtn) {
+        victoryBtn.addEventListener('click', () => {
+          victoryScreen?.classList.add('hidden');
+          this.onGameOverCallback!();
+        });
+      }
+    }
   }
 
   private gameOver(): void {
@@ -501,7 +569,7 @@ export class Game {
     const deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
     
-    if (!this.state.gameOver && !this.state.levelComplete) {
+    if (!this.state.gameOver && !this.state.levelComplete && !this.state.victory) {
       this.state.elapsedTime += deltaTime;
       this.updateTimer();
       this.processInput(); // Process held keys

@@ -73,6 +73,35 @@ document.addEventListener('DOMContentLoaded', () => {
       startBtn.style.color = palette.floor;
     }
     
+    // Update victory screen
+    const victoryScreen = document.getElementById('victory-screen');
+    if (victoryScreen) {
+      victoryScreen.style.background = palette.headerBg;
+      victoryScreen.style.borderColor = palette.wall;
+      victoryScreen.style.color = palette.text;
+      
+      // Update victory heading
+      const h2 = victoryScreen.querySelector('h2');
+      if (h2) h2.style.color = palette.accent;
+      
+      // Update victory paragraphs
+      const paragraphs = victoryScreen.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        (p as HTMLElement).style.color = palette.text;
+      });
+      
+      // Victory time in accent color
+      const victoryTime = victoryScreen.querySelector('.victory-time');
+      if (victoryTime) (victoryTime as HTMLElement).style.color = palette.accent;
+    }
+    
+    // Update victory play again button
+    const victoryBtn = document.getElementById('victory-play-again') as HTMLButtonElement;
+    if (victoryBtn) {
+      victoryBtn.style.background = palette.accent;
+      victoryBtn.style.color = palette.floor;
+    }
+    
     // Also apply to palette selector panel
     paletteSelector.style.background = palette.containerBg;
     paletteSelector.style.borderColor = palette.wall;

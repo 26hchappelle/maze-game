@@ -20,7 +20,7 @@ export class Renderer {
   }
 
   renderMaze(maze: Cell[][], gameState: GameState): void {
-    const isRevealed = gameState.activePowerUps.has('reveal');
+    const isRevealed = gameState.cheatMode || gameState.activePowerUps.has('reveal');
     const mazeWidth = maze[0].length;
     const mazeHeight = maze.length;
     
@@ -103,14 +103,15 @@ export class Renderer {
     const y = visualPosition.y * this.cellSize + this.cellSize / 2;
     const size = this.cellSize * 0.3;
     
-    // Draw player as pixelated circle
-    this.ctx.fillStyle = hasInvincibility ? '#a855f7' : gameState.currentPalette.player;
+    // Draw player as pixelated circle (cheat mode or invincibility powerup)
+    const isInvincible = gameState.cheatMode || hasInvincibility;
+    this.ctx.fillStyle = isInvincible ? '#a855f7' : gameState.currentPalette.player;
     this.ctx.beginPath();
     this.ctx.arc(x, y, size, 0, Math.PI * 2);
     this.ctx.fill();
     
     // Add invincibility glow
-    if (hasInvincibility) {
+    if (isInvincible) {
       this.ctx.strokeStyle = '#a855f7';
       this.ctx.lineWidth = 2;
       this.ctx.beginPath();
@@ -178,7 +179,7 @@ export class Renderer {
   }
 
   renderPowerUps(powerUps: PowerUp[], gameState: GameState): void {
-    const isRevealed = gameState.activePowerUps.has('reveal');
+    const isRevealed = gameState.cheatMode || gameState.activePowerUps.has('reveal');
     
     for (const powerUp of powerUps) {
       if (!powerUp.collected) {

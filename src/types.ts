@@ -55,9 +55,11 @@ export interface GameState {
   enemySpeed: number;
   gameOver: boolean;
   levelComplete: boolean;
+  victory: boolean; // True when all 6 levels are completed
   powerUps: PowerUp[];
   activePowerUps: Map<string, number>;
   elapsedTime: number;
+  totalTime: number; // Total time across all levels
   exploredCells: Set<string>;
   keysPressed: Set<string>;
   playerSpeed: number;
@@ -65,4 +67,5 @@ export interface GameState {
   isMoving: boolean;
   moveProgress: number;
   currentPalette: ColorPalette;
+  cheatMode: boolean; // Activated with '9' key - permanent invincibility and reveal
 }
