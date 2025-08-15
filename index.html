@@ -23,15 +23,12 @@
     </div>
     <canvas id="game-canvas"></canvas>
     <div id="mobile-controls" class="mobile-only">
-      <div class="arrow-controls">
-        <div class="arrow-row">
-          <button id="arrow-up" class="arrow-btn">▲</button>
-        </div>
-        <div class="arrow-row">
-          <button id="arrow-left" class="arrow-btn">◄</button>
-          <button id="arrow-down" class="arrow-btn">▼</button>
-          <button id="arrow-right" class="arrow-btn">►</button>
-        </div>
+      <div class="dpad-container">
+        <button id="arrow-up" class="arrow-btn dpad-up">▲</button>
+        <button id="arrow-left" class="arrow-btn dpad-left">◄</button>
+        <div class="dpad-center"></div>
+        <button id="arrow-right" class="arrow-btn dpad-right">►</button>
+        <button id="arrow-down" class="arrow-btn dpad-down">▼</button>
       </div>
     </div>
     <div id="game-over" class="hidden">
