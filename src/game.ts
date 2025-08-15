@@ -461,15 +461,6 @@ export class Game {
     }
   }
 
-  private restart(): void {
-    this.state = this.createInitialState(this.state.currentPalette);
-    const gameOverDiv = document.getElementById('game-over');
-    if (gameOverDiv) {
-      gameOverDiv.classList.add('hidden');
-    }
-    this.startLevel();
-  }
-  
   stop(): void {
     // Cancel animation frame
     if (this.animationFrameId) {
