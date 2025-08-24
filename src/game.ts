@@ -17,7 +17,7 @@ export class Game {
   private mazeWidth: number;
   private mazeHeight: number;
   private cellSize: number;
-  private sounds: SoundEffects;
+  public sounds: SoundEffects;  // Made public for audio initialization
   private animationSpeed: number = 200; // ms for smooth movement
   private freezeTimeout: ReturnType<typeof setTimeout> | null = null;
   private animationFrameId: number | null = null;
@@ -26,6 +26,9 @@ export class Game {
   constructor(canvas: HTMLCanvasElement, palette: ColorPalette, onGameOver?: () => void) {
     this.canvas = canvas;
     this.sounds = new SoundEffects();
+    
+    // Try to resume audio context immediately (in case user already interacted)
+    this.sounds.resumeAudioContext();
     
     // Calculate maze dimensions based on level
     this.mazeWidth = 15;
@@ -119,35 +122,42 @@ export class Game {
     const rightBtn = document.getElementById('arrow-right');
     
     if (upBtn) {
-      upBtn.addEventListener('touchstart', (e) => {
+      upBtn.addEventListener('touchstart', async (e) => {
         e.preventDefault();
+        await this.sounds.resumeAudioContext(); // Initialize audio on first touch
         this.movePlayer({ x: 0, y: -1 });
       });
     }
     
     if (downBtn) {
-      downBtn.addEventListener('touchstart', (e) => {
+      downBtn.addEventListener('touchstart', async (e) => {
         e.preventDefault();
+        await this.sounds.resumeAudioContext(); // Initialize audio on first touch
         this.movePlayer({ x: 0, y: 1 });
       });
     }
     
     if (leftBtn) {
-      leftBtn.addEventListener('touchstart', (e) => {
+      leftBtn.addEventListener('touchstart', async (e) => {
         e.preventDefault();
+        await this.sounds.resumeAudioContext(); // Initialize audio on first touch
         this.movePlayer({ x: -1, y: 0 });
       });
     }
     
     if (rightBtn) {
-      rightBtn.addEventListener('touchstart', (e) => {
+      rightBtn.addEventListener('touchstart', async (e) => {
         e.preventDefault();
+        await this.sounds.resumeAudioContext(); // Initialize audio on first touch
         this.movePlayer({ x: 1, y: 0 });
       });
     }
   }
 
-  private handleKeyDown(e: KeyboardEvent): void {
+  private async handleKeyDown(e: KeyboardEvent): Promise<void> {
+    // Initialize audio context on first key press (for desktop)
+    await this.sounds.resumeAudioContext();
+    
     // Handle sound toggle
     if (e.key === 'm' || e.key === 'M') {
       this.sounds.toggle();

@@ -1,14 +1,45 @@
 export class SoundEffects {
   private audioContext: AudioContext;
   private enabled: boolean = true;
+  private initialized: boolean = false;
   
   constructor() {
     // @ts-ignore - AudioContext might have vendor prefix
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Handle mobile audio context suspension
+    if (this.audioContext.state === 'suspended') {
+      this.initialized = false;
+    } else {
+      this.initialized = true;
+    }
   }
   
-  private createOscillator(frequency: number, type: OscillatorType, duration: number, volume: number = 0.3): void {
+  // Resume audio context on user interaction (required for mobile)
+  async resumeAudioContext(): Promise<void> {
+    if (this.audioContext.state === 'suspended') {
+      try {
+        await this.audioContext.resume();
+        this.initialized = true;
+        console.log('Audio context resumed');
+      } catch (error) {
+        console.error('Failed to resume audio context:', error);
+      }
+    }
+  }
+  
+  private async ensureAudioContext(): Promise<void> {
+    if (!this.initialized || this.audioContext.state === 'suspended') {
+      await this.resumeAudioContext();
+    }
+  }
+  
+  private async createOscillator(frequency: number, type: OscillatorType, duration: number, volume: number = 0.3): Promise<void> {
     if (!this.enabled) return;
+    
+    // Ensure audio context is running
+    await this.ensureAudioContext();
+    if (this.audioContext.state !== 'running') return;
     
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -26,11 +57,15 @@ export class SoundEffects {
     oscillator.stop(this.audioContext.currentTime + duration);
   }
   
-  playMove(): void {
-    this.createOscillator(200, 'square', 0.05, 0.1);
+  async playMove(): Promise<void> {
+    await this.createOscillator(200, 'square', 0.05, 0.1);
   }
   
-  playPowerUp(): void {
+  async playPowerUp(): Promise<void> {
+    if (!this.enabled) return;
+    await this.ensureAudioContext();
+    if (this.audioContext.state !== 'running') return;
+    
     // Rising tone
     const osc = this.audioContext.createOscillator();
     const gain = this.audioContext.createGain();
@@ -49,17 +84,25 @@ export class SoundEffects {
     osc.stop(this.audioContext.currentTime + 0.3);
   }
   
-  playLevelComplete(): void {
+  async playLevelComplete(): Promise<void> {
+    if (!this.enabled) return;
+    await this.ensureAudioContext();
+    if (this.audioContext.state !== 'running') return;
+    
     // Victory fanfare
     const notes = [523, 659, 784, 1047]; // C, E, G, High C
     notes.forEach((freq, i) => {
-      setTimeout(() => {
-        this.createOscillator(freq, 'sine', 0.2, 0.25);
+      setTimeout(async () => {
+        await this.createOscillator(freq, 'sine', 0.2, 0.25);
       }, i * 100);
     });
   }
   
-  playGameOver(): void {
+  async playGameOver(): Promise<void> {
+    if (!this.enabled) return;
+    await this.ensureAudioContext();
+    if (this.audioContext.state !== 'running') return;
+    
     // Descending tone
     const osc = this.audioContext.createOscillator();
     const gain = this.audioContext.createGain();
@@ -78,17 +121,21 @@ export class SoundEffects {
     osc.stop(this.audioContext.currentTime + 0.6);
   }
   
-  playEnemyNear(): void {
+  async playEnemyNear(): Promise<void> {
     // Low ominous tone
-    this.createOscillator(80, 'sine', 0.3, 0.2);
+    await this.createOscillator(80, 'sine', 0.3, 0.2);
   }
   
-  playEnemySpawn(): void {
+  async playEnemySpawn(): Promise<void> {
+    if (!this.enabled) return;
+    await this.ensureAudioContext();
+    if (this.audioContext.state !== 'running') return;
+    
     // Alert sound
     const frequencies = [300, 200, 300, 200];
     frequencies.forEach((freq, i) => {
-      setTimeout(() => {
-        this.createOscillator(freq, 'square', 0.1, 0.2);
+      setTimeout(async () => {
+        await this.createOscillator(freq, 'square', 0.1, 0.2);
       }, i * 150);
     });
   }

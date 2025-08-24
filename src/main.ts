@@ -188,7 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
   applyPaletteColors(defaultPalette);
   
   // Start game when button is clicked
-  startButton.addEventListener('click', startGame);
+  startButton.addEventListener('click', () => {
+    startGame();
+  });
   
   // Restart button now goes back to palette selection
   restartButton.addEventListener('click', showPaletteSelector);
