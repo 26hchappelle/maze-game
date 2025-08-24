@@ -3,6 +3,7 @@
 A browser-based maze escape game built with TypeScript and HTML5 Canvas. Players navigate through procedurally generated mazes while being pursued by an enemy, collecting power-ups and progressing through increasingly challenging levels.
 
 ## Table of Contents
+- [Recent Updates](#recent-updates)
 - [Architecture Overview](#architecture-overview)
 - [Project Structure](#project-structure)
 - [Core Systems](#core-systems)
@@ -11,6 +12,24 @@ A browser-based maze escape game built with TypeScript and HTML5 Canvas. Players
 - [Development Setup](#development-setup)
 - [Deployment](#deployment)
 - [Mobile Support](#mobile-support)
+
+## Recent Updates
+
+### Latest Changes (December 2024)
+- **Mobile D-pad Improvements**: Fixed positioning and reduced button sizes for better mobile gameplay
+  - Optimized D-pad layout with smaller 60px buttons (down from 72px)
+  - Improved touch target responsiveness
+  - Better visual feedback on button press
+  
+- **Enhanced Game Over Screen**: Added dual options for better user experience
+  - "Choose New Theme" button to return to palette selection
+  - "Play Again" button to quickly restart with the same theme
+  - Improved modal styling and button placement
+  
+- **Mobile Audio Support**: Fixed audio initialization for mobile browsers
+  - Audio context now properly resumes on first user interaction
+  - Compatible with iOS Safari and Chrome mobile audio policies
+  - Touch events trigger audio initialization for mobile controls
 
 ## Architecture Overview
 
