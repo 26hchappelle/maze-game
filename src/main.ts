@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const paletteGrid = document.getElementById('palette-grid') as HTMLElement;
   const startButton = document.getElementById('start-game-btn') as HTMLButtonElement;
   const restartButton = document.getElementById('restart-btn') as HTMLButtonElement;
+  const playAgainButton = document.getElementById('play-again-btn') as HTMLButtonElement;
   const gameOverDiv = document.getElementById('game-over') as HTMLElement;
   
   if (!canvas) {
@@ -64,6 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (restartBtn) {
       restartBtn.style.background = palette.wall;
       restartBtn.style.color = palette.ui;
+    }
+    
+    // Update play again button
+    const playAgainBtn = document.getElementById('play-again-btn') as HTMLButtonElement;
+    if (playAgainBtn) {
+      playAgainBtn.style.background = palette.accent;
+      playAgainBtn.style.color = palette.floor;
     }
     
     // Update start button
@@ -192,6 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
     startGame();
   });
   
-  // Restart button now goes back to palette selection
+  // Restart button goes back to palette selection
   restartButton.addEventListener('click', showPaletteSelector);
+  
+  // Play Again button restarts with the same palette
+  playAgainButton.addEventListener('click', () => {
+    gameOverDiv.classList.add('hidden');
+    startGame();
+  });
 });

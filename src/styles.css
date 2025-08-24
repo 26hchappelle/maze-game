@@ -92,7 +92,7 @@ body {
   margin-bottom: 20px;
 }
 
-#restart-btn {
+#restart-btn, #play-again-btn {
   border: none;
   padding: 12px 24px;
   font-size: 18px;
@@ -101,9 +101,10 @@ body {
   font-family: 'Courier New', monospace;
   font-weight: bold;
   transition: all 0.3s ease;
+  margin: 5px;
 }
 
-#restart-btn:hover {
+#restart-btn:hover, #play-again-btn:hover {
   opacity: 0.8;
   transform: translateY(-2px);
 }
@@ -324,7 +325,7 @@ body {
     font-size: 16px;
   }
   
-  #restart-btn, #victory-play-again {
+  #restart-btn, #play-again-btn, #victory-play-again {
     padding: 10px 20px;
     font-size: 16px;
   }
