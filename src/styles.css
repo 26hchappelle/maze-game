@@ -376,7 +376,7 @@ body {
 
 #mobile-controls {
   position: fixed;
-  bottom: 20px;
+  bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -384,16 +384,16 @@ body {
 
 .dpad-container {
   display: grid;
-  grid-template-columns: repeat(3, 72px);
-  grid-template-rows: repeat(3, 72px);
+  grid-template-columns: repeat(3, 54px);
+  grid-template-rows: repeat(3, 54px);
   gap: 2px;
   position: relative;
 }
 
 .arrow-btn {
-  width: 72px;
-  height: 72px;
-  font-size: 28px;
+  width: 54px;
+  height: 54px;
+  font-size: 22px;
   border: 2px solid;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.6);
@@ -427,8 +427,8 @@ body {
 .dpad-center {
   grid-column: 2;
   grid-row: 2;
-  width: 72px;
-  height: 72px;
+  width: 54px;
+  height: 54px;
   background: transparent;
   pointer-events: none;
 }
@@ -455,22 +455,101 @@ body {
 
 @media (max-width: 480px) {
   .dpad-container {
-    grid-template-columns: repeat(3, 60px);
-    grid-template-rows: repeat(3, 60px);
+    grid-template-columns: repeat(3, 45px);
+    grid-template-rows: repeat(3, 45px);
   }
   
   .arrow-btn {
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
+    width: 45px;
+    height: 45px;
+    font-size: 18px;
   }
   
   .dpad-center {
-    width: 60px;
-    height: 60px;
+    width: 45px;
+    height: 45px;
   }
   
   #mobile-controls {
-    bottom: 10px;
+    bottom: 30px;
+  }
+}
+
+/* Easter Egg Modal */
+#easter-egg-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.easter-egg-content {
+  text-align: center;
+  padding: 40px;
+  background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff, #06ffa5, #ffbe0b, #fb5607);
+  background-size: 300% 300%;
+  animation: rainbow-bg 2s ease infinite;
+  border-radius: 20px;
+  box-shadow: 0 0 50px rgba(255, 255, 255, 0.5);
+}
+
+@keyframes rainbow-bg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.easter-egg-text {
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  margin: 0 0 30px 0;
+  animation: flash-text 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes flash-text {
+  0% { 
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% { 
+    transform: scale(1.1);
+    filter: brightness(1.3);
+  }
+}
+
+#easter-egg-ok {
+  padding: 15px 40px;
+  font-size: 24px;
+  font-weight: bold;
+  background: white;
+  color: #8338ec;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+#easter-egg-ok:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 480px) {
+  .easter-egg-text {
+    font-size: 32px;
+  }
+  
+  #easter-egg-ok {
+    font-size: 20px;
+    padding: 12px 30px;
   }
 }

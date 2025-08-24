@@ -92,7 +92,8 @@ export class Game {
       isMoving: false,
       moveProgress: 0,
       currentPalette: palette,
-      cheatMode: false
+      cheatMode: false,
+      konamiSequence: []
     };
   }
 
@@ -227,6 +228,18 @@ export class Game {
   private movePlayer(direction: Position): boolean {
     const newX = this.state.playerPosition.x + direction.x;
     const newY = this.state.playerPosition.y + direction.y;
+    
+    // Track movement for Konami code
+    const directionMap: { [key: string]: string } = {
+      '0,-1': 'up',
+      '0,1': 'down',
+      '-1,0': 'left',
+      '1,0': 'right'
+    };
+    const move = directionMap[`${direction.x},${direction.y}`];
+    if (move) {
+      this.trackKonamiSequence(move);
+    }
     
     if (this.canMove(this.state.playerPosition, direction)) {
       this.state.playerPosition = { x: newX, y: newY };
@@ -451,6 +464,47 @@ export class Game {
         duration: 5000,
         collected: false
       });
+    }
+  }
+
+  private trackKonamiSequence(move: string): void {
+    const konamiCode = ['up', 'up', 'down', 'down', 'left', 'left', 'right', 'right'];
+    
+    // Add the move to the sequence
+    this.state.konamiSequence.push(move);
+    
+    // Keep only the last 8 moves
+    if (this.state.konamiSequence.length > 8) {
+      this.state.konamiSequence.shift();
+    }
+    
+    // Check if the sequence matches the Konami code
+    if (this.state.konamiSequence.length === 8) {
+      const isMatch = this.state.konamiSequence.every((m, i) => m === konamiCode[i]);
+      if (isMatch) {
+        this.triggerEasterEgg();
+      }
+    }
+  }
+
+  private triggerEasterEgg(): void {
+    // Stop the game
+    this.state.gameOver = true;
+    
+    // Show the easter egg modal
+    const modal = document.getElementById('easter-egg-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      
+      // Add event listener to OK button
+      const okButton = document.getElementById('easter-egg-ok');
+      if (okButton) {
+        okButton.onclick = () => {
+          modal.classList.add('hidden');
+          // Show game over modal
+          this.gameOver();
+        };
+      }
     }
   }
 

@@ -68,4 +68,5 @@ export interface GameState {
   moveProgress: number;
   currentPalette: ColorPalette;
   cheatMode: boolean; // Activated with '9' key - permanent invincibility and reveal
+  konamiSequence: string[]; // Track the sequence of moves for easter egg
 }
